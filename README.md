@@ -1,6 +1,6 @@
 # AirTouch
 
-AirTouch recognizes hand gestures using the front camera and MediaPipe on-device. Thumbs up plays/resumes media, a closed fist pauses media, a horizontal open-hand swipe changes media items/slides, and a vertical open-hand swipe scrolls the current screen. Palm-to-lock requests a screen lock after a steady 0.8-second hold.
+AirTouch recognizes hand gestures using the front camera and MediaPipe on-device. Thumbs up plays/resumes media, a closed fist pauses media, a horizontal open-hand swipe changes media items/slides, and a two-finger swipe up/down scrolls the current screen in the same direction. Palm-to-lock requests a screen lock after a steady 0.8-second hold.
 
 Camera recognition starts only after the user starts a session while the app is visible and grants camera access. A camera foreground service keeps that user-started session active while the screen is off or another app is in front. The ongoing Android notification includes a Stop camera action. Force-stopping AirTouch or stopping the service ends camera access.
 

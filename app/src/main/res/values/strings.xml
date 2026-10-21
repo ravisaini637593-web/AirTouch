@@ -2,5 +2,5 @@
     <string name="app_name">AirTouch</string>
     <string name="device_admin_description">Allows AirTouch to lock the screen only after you deliberately hold an open palm for 0.8 seconds during an active session.</string>
     <string name="accessibility_service_label">AirTouch gesture scrolling</string>
-    <string name="accessibility_service_description">Lets AirTouch inspect the active screen for scrollable controls and scroll when you swipe an open hand during an active camera session. AirTouch does not collect or store screen text.</string>
+    <string name="accessibility_service_description">Lets AirTouch inspect the active screen for scrollable controls and scroll when you swipe two fingers during an active camera session. AirTouch does not collect or store screen text.</string>
 </resources>

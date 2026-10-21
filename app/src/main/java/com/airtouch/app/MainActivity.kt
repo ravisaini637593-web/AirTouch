@@ -129,7 +129,7 @@ private val gestureList = listOf(
     GestureInfo("Closed fist", "Pause media", "✊"),
     GestureInfo("Swipe left", "Previous item or slide", "←"),
     GestureInfo("Swipe right", "Next item or slide", "→"),
-    GestureInfo("Swipe up / down", "Scroll the current screen", "↕"),
+    GestureInfo("Two-finger swipe up / down", "Scroll the screen in that direction", "✌️"),
     GestureInfo("Open palm", "Hold 0.8 sec to lock screen", "✋")
 )
 
@@ -364,7 +364,7 @@ private fun SettingsScreen(onBack: () -> Unit, lockEnabled: Boolean, onEnableLoc
                         Text("↕", color = Green, fontSize = 22.sp); Spacer(Modifier.width(10.dp)); Text("Gesture scrolling", color = Ink, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.weight(1f)); Text(if (scrollingEnabled) "READY" else "OFF", color = if (scrollingEnabled) Green else Muted, fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
                     }
-                    Text("Swipe an open hand up or down to scroll the current app. Android requires you to enable AirTouch’s accessibility service.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 12.dp, bottom = 14.dp))
+                    Text("Show two fingers and swipe up or down to scroll the current screen in the same direction. Android requires you to enable AirTouch’s accessibility service.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 12.dp, bottom = 14.dp))
                     OutlinedButton(onClick = onEnableScrolling, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                         Text(if (scrollingEnabled) "Review scrolling access" else "Enable gesture scrolling")
                     }
@@ -541,19 +541,22 @@ internal class GestureEngine(
         }
         if (name != candidate) { candidate = name; candidateSince = now; firedForPose = false; swipeStartX = x; swipeStartY = y; swipeStartAt = now }
         val elapsed = now - candidateSince
+        if (name == "Victory") {
+            val dy = y?.minus(swipeStartY ?: y) ?: 0f
+            if (now - swipeStartAt in 120..1000 && kotlin.math.abs(dy) >= 0.22f && now - lastAction >= 800L) {
+                val action = if (dy < 0f) "Scroll up" else "Scroll down"
+                trigger(if (practice) "Practice cue · $action" else action, if (practice) "Practice cue · two-finger swipe" else "Two-finger scroll recognized", now)
+                reset()
+                return
+            }
+            emit(RecognitionEvent("Two fingers · swipe to scroll", "Recognition confidence ${(score * 100).toInt()}%"))
+            return
+        }
         if (name == "Open_Palm") {
             val dx = x - (swipeStartX ?: x)
-            val dy = y?.minus(swipeStartY ?: y) ?: 0f
             val swipeElapsed = now - swipeStartAt
-            val horizontalSwipe = kotlin.math.abs(dx) >= 0.25f && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.15f
-            val verticalSwipe = kotlin.math.abs(dy) >= 0.22f && kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.15f
-            if (swipeElapsed in 120..1000 && (horizontalSwipe || verticalSwipe) && now - lastAction >= 800L) {
-                val action = when {
-                    verticalSwipe && dy < 0f -> "Scroll down"
-                    verticalSwipe -> "Scroll up"
-                    dx < 0f -> "Previous item"
-                    else -> "Next item"
-                }
+            if (swipeElapsed in 120..1000 && kotlin.math.abs(dx) >= 0.25f && now - lastAction >= 800L) {
+                val action = if (dx < 0f) "Previous item" else "Next item"
                 trigger(action, if (practice) "Practice cue · swipe" else "Swipe recognized", now)
                 reset(); return
             }
@@ -581,7 +584,7 @@ internal class GestureEngine(
         lastAction = now
         emit(RecognitionEvent(action, status, 0f, if (practice) "Practice" else action))
     }
-    private fun reset() { candidate = ""; candidateSince = 0L; swipeStartX = null; swipeStartY = null; firedForPose = false }
+    private fun reset() { candidate = ""; candidateSince = 0L; swipeStartX = null; swipeStartY = null; swipeStartAt = 0L; firedForPose = false }
 }
 
 @Composable

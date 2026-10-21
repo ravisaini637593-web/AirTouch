@@ -60,25 +60,36 @@ class GestureEngineTest {
     }
 
     @Test
-    fun openPalmSwipeUpScrollsDown() {
+    fun twoFingerSwipeUpScrollsUp() {
+        val events = mutableListOf<RecognitionEvent>()
+        val engine = GestureEngine(0.60f, false, true, false, events::add)
+
+        engine.onFrame("Victory", 0.9f, 0.5f, 1_000L, 0.70f)
+        engine.onFrame("Victory", 0.9f, 0.5f, 1_200L, 0.42f)
+
+        assertEquals("Scroll up", events.last().action)
+    }
+
+    @Test
+    fun twoFingerSwipeDownScrollsDown() {
+        val events = mutableListOf<RecognitionEvent>()
+        val engine = GestureEngine(0.60f, false, true, false, events::add)
+
+        engine.onFrame("Victory", 0.9f, 0.5f, 1_000L, 0.30f)
+        engine.onFrame("Victory", 0.9f, 0.5f, 1_200L, 0.58f)
+
+        assertEquals("Scroll down", events.last().action)
+    }
+
+    @Test
+    fun openPalmSwipeDoesNotTriggerScreenScrolling() {
         val events = mutableListOf<RecognitionEvent>()
         val engine = GestureEngine(0.60f, false, true, false, events::add)
 
         engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_000L, 0.70f)
         engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_200L, 0.42f)
 
-        assertEquals("Scroll down", events.last().action)
-    }
-
-    @Test
-    fun openPalmSwipeDownScrollsUp() {
-        val events = mutableListOf<RecognitionEvent>()
-        val engine = GestureEngine(0.60f, false, true, false, events::add)
-
-        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_000L, 0.30f)
-        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_200L, 0.58f)
-
-        assertEquals("Scroll up", events.last().action)
+        assertNull(events.last().action)
     }
 
     @Test

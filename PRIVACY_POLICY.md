@@ -8,7 +8,7 @@ Camera frames are processed on your device for hand-gesture recognition. AirTouc
 
 If you enable palm-to-lock, Android Device Administrator access is used only to request the screen lock after the configured open-palm gesture. You can disable that access in Android system settings.
 
-If you enable gesture scrolling, Android's Accessibility service checks the active window for scrollable controls and sends a scroll action after an open-hand up/down swipe during an active camera session. AirTouch does not collect or store screen text. You can disable the service at any time in Android Accessibility settings.
+If you enable gesture scrolling, Android's Accessibility service checks the active window for scrollable controls and sends a scroll action after a two-finger up/down swipe during an active camera session. AirTouch does not collect or store screen text. You can disable the service at any time in Android Accessibility settings.
 
 AirTouch does not sell personal information. This policy describes the current app build; if the app's data handling changes, this policy must be updated before that version is published.
 
