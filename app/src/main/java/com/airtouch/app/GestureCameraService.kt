@@ -58,6 +58,12 @@ class GestureCameraService : LifecycleService() {
                 "Pause" -> dispatchMediaKey(this, android.view.KeyEvent.KEYCODE_MEDIA_PAUSE)
                 "Previous item" -> dispatchMediaKey(this, android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                 "Next item" -> dispatchMediaKey(this, android.view.KeyEvent.KEYCODE_MEDIA_NEXT)
+                "Scroll down" -> if (!AirTouchAccessibilityService.scroll(true)) {
+                    sendError(if (AirTouchAccessibilityService.isEnabled(this)) "This screen cannot scroll further down." else "Enable AirTouch gesture scrolling in Settings to scroll other apps.")
+                }
+                "Scroll up" -> if (!AirTouchAccessibilityService.scroll(false)) {
+                    sendError(if (AirTouchAccessibilityService.isEnabled(this)) "This screen cannot scroll further up." else "Enable AirTouch gesture scrolling in Settings to scroll other apps.")
+                }
                 "Locking screen" -> if (lockEnabled) {
                     runCatching { lockDevice(this) }
                         .onSuccess { stopSession() }
@@ -133,7 +139,8 @@ class GestureCameraService : LifecycleService() {
             val category = result?.gestures()?.firstOrNull()?.firstOrNull()
             val landmarks = result?.landmarks()?.firstOrNull()
             val centerX = landmarks?.map { it.x() }?.average()?.toFloat()
-            engine?.onFrame(category?.categoryName(), category?.score() ?: 0f, centerX, now)
+            val centerY = landmarks?.map { it.y() }?.average()?.toFloat()
+            engine?.onFrame(category?.categoryName(), category?.score() ?: 0f, centerX, now, centerY)
         } catch (error: Exception) {
             if (fatalErrorReported.compareAndSet(false, true)) {
                 sendError("Gesture recognition failed: ${error.localizedMessage ?: error.javaClass.simpleName}")

@@ -60,6 +60,41 @@ class GestureEngineTest {
     }
 
     @Test
+    fun openPalmSwipeUpScrollsDown() {
+        val events = mutableListOf<RecognitionEvent>()
+        val engine = GestureEngine(0.60f, false, true, false, events::add)
+
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_000L, 0.70f)
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_200L, 0.42f)
+
+        assertEquals("Scroll down", events.last().action)
+    }
+
+    @Test
+    fun openPalmSwipeDownScrollsUp() {
+        val events = mutableListOf<RecognitionEvent>()
+        val engine = GestureEngine(0.60f, false, true, false, events::add)
+
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_000L, 0.30f)
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_200L, 0.58f)
+
+        assertEquals("Scroll up", events.last().action)
+    }
+
+    @Test
+    fun palmLockUsesEightHundredMillisecondHold() {
+        val events = mutableListOf<RecognitionEvent>()
+        val engine = GestureEngine(0.60f, true, true, false, events::add)
+
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_000L)
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_799L)
+        assertNull(events.last().action)
+        engine.onFrame("Open_Palm", 0.9f, 0.5f, 1_800L)
+
+        assertEquals("Locking screen", events.last().action)
+    }
+
+    @Test
     fun lowConfidenceFrameResetsHoldTimer() {
         val events = mutableListOf<RecognitionEvent>()
         val engine = GestureEngine(0.60f, false, true, false, events::add)

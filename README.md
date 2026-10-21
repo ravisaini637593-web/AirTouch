@@ -1,6 +1,10 @@
 # AirTouch
 
-AirTouch recognizes a small set of hand gestures using the front camera and MediaPipe on-device. Camera recognition starts only after the user starts a session while the app is visible and grants camera access. A camera foreground service keeps that user-started session active while the screen is off or another app is in front. The ongoing Android notification includes a Stop camera action. Force-stopping AirTouch or stopping the service ends camera access.
+AirTouch recognizes hand gestures using the front camera and MediaPipe on-device. Thumbs up plays/resumes media, a closed fist pauses media, a horizontal open-hand swipe changes media items/slides, and a vertical open-hand swipe scrolls the current screen. Palm-to-lock requests a screen lock after a steady 0.8-second hold.
+
+Camera recognition starts only after the user starts a session while the app is visible and grants camera access. A camera foreground service keeps that user-started session active while the screen is off or another app is in front. The ongoing Android notification includes a Stop camera action. Force-stopping AirTouch or stopping the service ends camera access.
+
+To enable scrolling, open **Settings > Gesture scrolling > Enable gesture scrolling**, then switch on **AirTouch gesture scrolling** in Android Accessibility settings. Android requires this explicit special access before an app can send scroll actions in other apps. AirTouch uses it to locate scrollable controls in the active window and does not collect or store screen text. Scrolling remains unavailable until this service is enabled.
 
 ## Build in Android Studio
 

@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
                     requestCamera = { callback -> requestSessionPermissions(callback) },
                     openLockAdmin = { startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                         putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, ComponentName(this@MainActivity, LockAdminReceiver::class.java))
-                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "AirTouch can lock the screen after a deliberate 1.5-second open-palm hold during an active session.")
+                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "AirTouch can lock the screen after a deliberate 0.8-second open-palm hold during an active session.")
                     }) }
                 )
             }
@@ -129,7 +129,8 @@ private val gestureList = listOf(
     GestureInfo("Closed fist", "Pause media", "✊"),
     GestureInfo("Swipe left", "Previous item or slide", "←"),
     GestureInfo("Swipe right", "Next item or slide", "→"),
-    GestureInfo("Open palm", "Hold 1.5 sec to lock screen", "✋")
+    GestureInfo("Swipe up / down", "Scroll the current screen", "↕"),
+    GestureInfo("Open palm", "Hold 0.8 sec to lock screen", "✋")
 )
 
 @Composable
@@ -143,6 +144,7 @@ private fun AirTouchApp(requestCamera: ((Boolean) -> Unit) -> Unit, openLockAdmi
     var showCameraRationale by rememberSaveable { mutableStateOf(false) }
     var toast by remember { mutableStateOf("") }
     var lockEnabled by remember { mutableStateOf(isLockAdminActive(context)) }
+    var scrollingEnabled by remember { mutableStateOf(AirTouchAccessibilityService.isEnabled(context)) }
     var enabledGestures by remember { mutableStateOf(prefs.getBoolean("gestures", true)) }
     var sensitivity by remember { mutableFloatStateOf(normalizeSensitivity(prefs.getFloat("sensitivity", 0.60f))) }
     val snackbarState = remember { SnackbarHostState() }
@@ -158,6 +160,7 @@ private fun AirTouchApp(requestCamera: ((Boolean) -> Unit) -> Unit, openLockAdmi
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 lockEnabled = isLockAdminActive(context)
+                scrollingEnabled = AirTouchAccessibilityService.isEnabled(context)
                 if (screen == Screen.SESSION && !prefs.getBoolean("camera_session_active", false)) {
                     session = false
                     screen = Screen.HOME
@@ -207,6 +210,8 @@ private fun AirTouchApp(requestCamera: ((Boolean) -> Unit) -> Unit, openLockAdmi
                     onBack = { screen = Screen.HOME },
                     lockEnabled = lockEnabled,
                     onEnableLock = openLockAdmin,
+                    scrollingEnabled = scrollingEnabled,
+                    onEnableScrolling = { context.startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                     enabled = enabledGestures,
                     onEnabled = { enabledGestures = it; prefs.edit().putBoolean("gestures", it).apply() },
                     sensitivity = sensitivity,
@@ -347,12 +352,24 @@ private fun PracticeScreen(onBack: () -> Unit, onStart: () -> Unit) {
 }
 
 @Composable
-private fun SettingsScreen(onBack: () -> Unit, lockEnabled: Boolean, onEnableLock: () -> Unit, enabled: Boolean, onEnabled: (Boolean) -> Unit, sensitivity: Float, onSensitivity: (Float) -> Unit) {
+private fun SettingsScreen(onBack: () -> Unit, lockEnabled: Boolean, onEnableLock: () -> Unit, scrollingEnabled: Boolean, onEnableScrolling: () -> Unit, enabled: Boolean, onEnabled: (Boolean) -> Unit, sensitivity: Float, onSensitivity: (Float) -> Unit) {
     Column(Modifier.fillMaxSize().background(Canvas).statusBarsPadding().navigationBarsPadding().padding(horizontal = 22.dp)) {
         BackHeader("Settings", onBack)
         Text("Make it yours", color = Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold)
         Text("Small controls, clear choices.", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp, bottom = 18.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 28.dp)) {
+            item {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(White).padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("↕", color = Green, fontSize = 22.sp); Spacer(Modifier.width(10.dp)); Text("Gesture scrolling", color = Ink, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f)); Text(if (scrollingEnabled) "READY" else "OFF", color = if (scrollingEnabled) Green else Muted, fontSize = 10.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text("Swipe an open hand up or down to scroll the current app. Android requires you to enable AirTouch’s accessibility service.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 12.dp, bottom = 14.dp))
+                    OutlinedButton(onClick = onEnableScrolling, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                        Text(if (scrollingEnabled) "Review scrolling access" else "Enable gesture scrolling")
+                    }
+                }
+            }
             item {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(White).padding(18.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -469,7 +486,7 @@ private fun GestureSession(practice: Boolean, lockEnabled: Boolean, enabledGestu
                 }
                 if (progress > 0f && progress < 1f && currentGesture == "Open palm · hold to lock") {
                     Spacer(Modifier.height(12.dp)); LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape), color = Lime, trackColor = Color(0x55FFFFFF))
-                    Text("Keep your palm steady · ${(1.5f * (1f - progress)).coerceAtLeast(0f).format1()}s", color = White, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
+                    Text("Keep your palm steady · ${(PALM_LOCK_HOLD_MS / 1000f * (1f - progress)).coerceAtLeast(0f).format1()}s", color = White, fontSize = 11.sp, modifier = Modifier.padding(top = 5.dp))
                 }
             }
         }
@@ -484,6 +501,7 @@ private fun GestureSession(practice: Boolean, lockEnabled: Boolean, enabledGestu
 }
 
 internal data class RecognitionEvent(val gesture: String, val status: String, val progress: Float = 0f, val action: String? = null)
+internal const val PALM_LOCK_HOLD_MS = 800L
 
 internal fun normalizeSensitivity(value: Float): Float =
     if (value.isFinite() && value in 0.40f..0.85f) value else 0.60f
@@ -500,6 +518,7 @@ internal class GestureEngine(
     private var candidateSince = 0L
     private var lastAction = 0L
     private var swipeStartX: Float? = null
+    private var swipeStartY: Float? = null
     private var swipeStartAt = 0L
     private var paused = false
     private var firedForPose = false
@@ -507,7 +526,7 @@ internal class GestureEngine(
     fun pause() { paused = true; emit(RecognitionEvent("Recognition paused", "Recognition paused · tap Resume when ready")) }
     fun resume() { paused = false; reset() }
 
-    fun onFrame(name: String?, score: Float, x: Float?, now: Long) {
+    fun onFrame(name: String?, score: Float, x: Float?, now: Long, y: Float? = null) {
         if (paused) return
         if (!enabled && !practice) { emit(RecognitionEvent("Gestures are off", "Turn gesture controls on in Settings")); return }
         if (x == null) {
@@ -520,17 +539,26 @@ internal class GestureEngine(
             emit(RecognitionEvent("Hand detected · adjust pose", "Gesture confidence ${(score * 100).toInt()}% · keep your hand centered and well lit"))
             return
         }
-        if (name != candidate) { candidate = name; candidateSince = now; firedForPose = false; swipeStartX = x; swipeStartAt = now }
+        if (name != candidate) { candidate = name; candidateSince = now; firedForPose = false; swipeStartX = x; swipeStartY = y; swipeStartAt = now }
         val elapsed = now - candidateSince
         if (name == "Open_Palm") {
             val dx = x - (swipeStartX ?: x)
+            val dy = y?.minus(swipeStartY ?: y) ?: 0f
             val swipeElapsed = now - swipeStartAt
-            if (swipeElapsed in 120..1000 && kotlin.math.abs(dx) >= 0.25f && now - lastAction >= 800L) {
-                trigger(if (dx < 0) "Previous item" else "Next item", if (practice) "Practice cue · swipe" else "Swipe recognized", now)
+            val horizontalSwipe = kotlin.math.abs(dx) >= 0.25f && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.15f
+            val verticalSwipe = kotlin.math.abs(dy) >= 0.22f && kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.15f
+            if (swipeElapsed in 120..1000 && (horizontalSwipe || verticalSwipe) && now - lastAction >= 800L) {
+                val action = when {
+                    verticalSwipe && dy < 0f -> "Scroll down"
+                    verticalSwipe -> "Scroll up"
+                    dx < 0f -> "Previous item"
+                    else -> "Next item"
+                }
+                trigger(action, if (practice) "Practice cue · swipe" else "Swipe recognized", now)
                 reset(); return
             }
             if (lockEnabled && !practice) {
-                val progress = (elapsed / 1500f).coerceIn(0f, 1f)
+                val progress = (elapsed / PALM_LOCK_HOLD_MS.toFloat()).coerceIn(0f, 1f)
                 if (progress >= 1f && !firedForPose && now - lastAction >= 800L) {
                     firedForPose = true
                     trigger("Locking screen", "Screen lock requested", now)
@@ -553,7 +581,7 @@ internal class GestureEngine(
         lastAction = now
         emit(RecognitionEvent(action, status, 0f, if (practice) "Practice" else action))
     }
-    private fun reset() { candidate = ""; candidateSince = 0L; swipeStartX = null; firedForPose = false }
+    private fun reset() { candidate = ""; candidateSince = 0L; swipeStartX = null; swipeStartY = null; firedForPose = false }
 }
 
 @Composable
