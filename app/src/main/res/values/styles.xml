@@ -1,0 +1,10 @@
+<resources>
+    <color name="launcher_background">#155F4A</color>
+    <style name="Theme.AirTouch" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F5F5F0</item>
+        <item name="android:navigationBarColor">#F5F5F0</item>
+        <item name="android:colorAccent">#155F4A</item>
+    </style>
+</resources>

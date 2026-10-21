@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AirTouch</string>
+    <string name="device_admin_description">Allows AirTouch to lock the screen only after you deliberately hold an open palm for 1.5 seconds during an active session.</string>
+</resources>
